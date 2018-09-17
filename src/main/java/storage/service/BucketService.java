@@ -1,16 +1,36 @@
 package storage.service;
 
-import java.util.Optional;
-
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ResponseBody;
 import storage.model.Bucket;
+
+import java.util.Map;
 
 public interface BucketService {
 
-    public Iterable<Bucket> findAll();
+    Map<String, Object> createResponse(Bucket bucket);
 
-    public Bucket save(Bucket bucket);
+    Map<String, Object> createResponseList(Map<String, Object> response, Bucket bucket);
 
-    public Optional<Bucket> findByName(String name);
+    Iterable<Bucket> findAll();
 
-    public void removeBucket(String name);
+    boolean bucketExist(String name);
+
+    @ResponseBody
+    ResponseEntity<?> createBucket(String name);
+
+    @ResponseBody
+    ResponseEntity<?> deleteBucket(String name);
+
+    @ResponseBody
+    ResponseEntity<?> listObjects(String name);
+
+    boolean createBucketDirectory(Bucket bucket);
+
+    void saveBucket(Bucket bucket);
+
+    void deleteBucket(Bucket bucket);
+
+    Bucket findBucketByName(String name);
+
 }
