@@ -11,11 +11,6 @@ public class BucketController {
     @Autowired
     private BucketServiceImpl bucketService;
 
-    @RequestMapping("/")
-    public String index() {
-        return "Hello World from Spring Boot!";
-    }
-
     @RequestMapping(value = "/all", method = RequestMethod.GET)
     public Iterable<Bucket> getAll(){
         Iterable<Bucket> buckets = this.bucketService.findAll();

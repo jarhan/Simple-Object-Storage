@@ -13,6 +13,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class BucketServiceImpl implements BucketService {
@@ -22,6 +23,11 @@ public class BucketServiceImpl implements BucketService {
     @Override
     public Iterable<Bucket> findAll() {
         return bucketRepository.findAll();
+    }
+
+    @Override
+    public String createInternalName() {
+        return UUID.randomUUID().toString();
     }
 
     @Override
@@ -49,10 +55,11 @@ public class BucketServiceImpl implements BucketService {
     public ResponseEntity<?> createBucket(String name) {
         if (!this.bucketExist(name)) {
             long timestamp = new Timestamp(System.currentTimeMillis()).getTime();
-            Bucket b = new Bucket(name, timestamp, timestamp);
+            String uuid = this.createInternalName();
+            Bucket b = new Bucket(name, timestamp, timestamp, uuid);
             try {
-                this.saveBucket(b);
                 this.createBucketDirectory(b);
+                this.saveBucket(b);
                 Map<String, Object> response = this.createResponse(b);
                 return ResponseEntity.ok().body(response);
             }
@@ -68,8 +75,8 @@ public class BucketServiceImpl implements BucketService {
         Bucket bucket_to_delete = this.findBucketByName(name);
         if (bucket_to_delete != null) {
             try {
-                this.deleteBucket(bucket_to_delete);
                 FileUtils.deleteDirectory(new File("data/" + name));
+                this.deleteBucket(bucket_to_delete);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (Exception ex) {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

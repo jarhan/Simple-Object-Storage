@@ -8,6 +8,8 @@ import java.util.Map;
 
 public interface BucketService {
 
+    String createInternalName();
+
     Map<String, Object> createResponse(Bucket bucket);
 
     Map<String, Object> createResponseList(Map<String, Object> response, Bucket bucket);
