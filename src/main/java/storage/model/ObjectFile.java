@@ -39,10 +39,6 @@ public class ObjectFile {
                 id, name, created, modified);
     }
 
-    public ObjectId getId() {
-        return id;
-    }
-
     public String getName() {
         return name;
     }

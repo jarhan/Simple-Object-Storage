@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import storage.model.Bucket;
+import storage.model.ObjectFile;
 import storage.repository.BucketRepository;
 
 import java.io.File;
@@ -40,8 +41,19 @@ public class BucketServiceImpl implements BucketService {
     }
 
     @Override
-    public Map<String, Object> createResponseList(Map<String, Object> response, Bucket bucket) {
-        response.put("objects", new ArrayList<String>());
+    public Map<String, Object> createResponseList(Bucket bucket, Map<String, Object> response) {
+        ArrayList<ObjectFile> objects = bucket.getObjects();
+        ArrayList<Object> objects_to_show = new ArrayList<>();
+
+        for (ObjectFile object: objects) {
+            Map<String, Object> each_obj = new HashMap<>();
+            each_obj.put("name", object.getName());
+            each_obj.put("created", object.getCreated());
+            each_obj.put("modified", object.getModified());
+
+            objects_to_show.add(each_obj);
+        }
+        response.put("objects", objects_to_show);
         return response;
     }
 
@@ -90,7 +102,7 @@ public class BucketServiceImpl implements BucketService {
         Bucket bucket = this.findBucketByName(name);
         if (bucket != null) {
             Map<String, Object> response = this.createResponse(bucket);
-            Map<String, Object> response_with_objects = this.createResponseList(response, bucket);
+            Map<String, Object> response_with_objects = this.createResponseList(bucket, response);
             return ResponseEntity.ok().body(response_with_objects);
         }
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

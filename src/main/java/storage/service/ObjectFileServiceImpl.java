@@ -77,6 +77,7 @@ public class ObjectFileServiceImpl implements ObjectFileService {
                 try {
                     objects.add(objectFile);
                     bucket.setObjects(objects);
+                    bucket.setModified(timestamp);
 
                     this.createObjectFileDirectory(bucket, objectFile);
                     bucketRepository.save(bucket);

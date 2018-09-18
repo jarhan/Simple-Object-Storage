@@ -12,7 +12,7 @@ public interface BucketService {
 
     Map<String, Object> createResponse(Bucket bucket);
 
-    Map<String, Object> createResponseList(Map<String, Object> response, Bucket bucket);
+    Map<String, Object> createResponseList(Bucket bucket, Map<String, Object> response);
 
     Iterable<Bucket> findAll();
 
