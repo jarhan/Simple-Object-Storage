@@ -2,6 +2,7 @@ package storage.service;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ResponseBody;
+import storage.model.Bucket;
 import storage.model.ObjectFile;
 
 public interface ObjectFileService {
@@ -13,5 +14,7 @@ public interface ObjectFileService {
     @ResponseBody
     ResponseEntity<?> createObjectFile(String bucket_name, String object_name);
 
-    boolean createObjectFileDirectory(ObjectFile object);
+    @ResponseBody
+    ResponseEntity<?> deleteObjectFile(String bucket_name, String object_name);
+
 }

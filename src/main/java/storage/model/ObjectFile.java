@@ -1,5 +1,6 @@
 package storage.model;
 
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -11,7 +12,7 @@ import java.util.Set;
 public class ObjectFile {
 
     @Id
-    private String id;
+    private ObjectId id;
 
     private String name;
     private long created;
@@ -36,6 +37,10 @@ public class ObjectFile {
         return String.format(
                 "\nObject[id=%s, name='%s', created='%s', modified='%s']",
                 id, name, created, modified);
+    }
+
+    public ObjectId getId() {
+        return id;
     }
 
     public String getName() {

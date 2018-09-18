@@ -21,36 +21,25 @@ public class ObjectFileController {
     private BucketRepository bucketRepository;
 
     @RequestMapping(value = "/{bucket_name}/all", method = RequestMethod.GET)
-    public Iterable<ObjectFile> getAll(){
-        Iterable<ObjectFile> objectFiles = this.objectFileService.findAll();
-        System.out.println(objectFiles);
-        return objectFiles;
+    public Iterable<ObjectFile> getAll(@PathVariable String bucket_name){
+        Bucket bucket = bucketRepository.findByName(bucket_name);
+        return bucket.getObjects();
     }
 
     @RequestMapping(value = "/{bucket_name}/{object_name}", method = RequestMethod.POST)
-    public @ResponseBody ResponseEntity<?> createBucket(@RequestParam(value = "create") String create,
+    public @ResponseBody ResponseEntity<?> createObjectFile(@RequestParam(value = "create") String create,
                                                         @PathVariable String bucket_name,
                                                         @PathVariable String object_name) {
-        Bucket bucket = bucketRepository.findByName(bucket_name);
-        long timestamp = new Timestamp(System.currentTimeMillis()).getTime();
-        String uuid = objectFileService.createInternalName();
-        ObjectFile objectFile = new ObjectFile(object_name, timestamp, timestamp, uuid);
-        ArrayList<ObjectFile> bucket_objects = bucket.getObjects();
-        bucket_objects.add(objectFile);
-        bucket.setObjects(bucket_objects);
-        System.out.println("bucket: " + bucket);
-        bucketRepository.save(bucket);
-        Bucket bucket_n = bucketRepository.findByName(bucket_name);
-        System.out.println("new bucket: " + bucket_n);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return objectFileService.createObjectFile(bucket_name, object_name);
     }
 
-//    @RequestMapping(value = "/{bucket_name}", method = RequestMethod.DELETE)
-//    public @ResponseBody ResponseEntity<?> deleteBucket(@RequestParam(value = "delete") String delete,
-//                                                        @PathVariable String bucket_name) {
-//        return this.bucketService.deleteBucket(bucket_name);
-//    }
-//
+    @RequestMapping(value = "/{bucket_name}/{object_name}", method = RequestMethod.DELETE)
+    public @ResponseBody ResponseEntity<?> deleteBucket(@RequestParam(value = "delete") String delete,
+                                                        @PathVariable String bucket_name,
+                                                        @PathVariable String object_name) {
+        return objectFileService.deleteObjectFile(bucket_name, object_name);
+    }
+
 //    @RequestMapping(value = "/{bucket_name}", method = RequestMethod.GET)
 //    public @ResponseBody ResponseEntity<?> listObjects(@RequestParam(value = "list") String list,
 //                                                       @PathVariable String bucket_name) {

@@ -88,9 +88,7 @@ public class BucketServiceImpl implements BucketService {
     @Override
     public ResponseEntity<?> listObjects(String name) {
         Bucket bucket = this.findBucketByName(name);
-        System.out.println(bucket);
         if (bucket != null) {
-            System.out.println("bucket exists");
             Map<String, Object> response = this.createResponse(bucket);
             Map<String, Object> response_with_objects = this.createResponseList(response, bucket);
             return ResponseEntity.ok().body(response_with_objects);
