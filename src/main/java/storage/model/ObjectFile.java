@@ -58,4 +58,32 @@ public class ObjectFile {
     public void setModified(long modified) {
         this.modified = modified;
     }
+
+    public boolean containFilePart(Integer file_part) {
+        return file_parts.contains(file_part);
+    }
+
+    public Set<Integer> addFilePart(Integer file_part) {
+        file_parts.add(file_part);
+        return file_parts;
+    }
+
+    public boolean isTicketFlagged() {
+        return ticket;
+    }
+
+    public boolean isPartNumberValidToAdd(Integer part_number) {
+        if (part_number >= 1 && part_number <= 10000 && !file_parts.contains(part_number)) {
+            return true;
+        }
+        return false;
+    }
+
+    public void flagTicket() {
+        this.ticket = true;
+    }
+
+    public void unflagTicket() {
+        this.ticket = false;
+    }
 }

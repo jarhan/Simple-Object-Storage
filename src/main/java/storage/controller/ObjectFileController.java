@@ -1,7 +1,6 @@
 package storage.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import storage.model.Bucket;
@@ -9,8 +8,8 @@ import storage.model.ObjectFile;
 import storage.repository.BucketRepository;
 import storage.service.ObjectFileServiceImpl;
 
-import java.sql.Timestamp;
-import java.util.ArrayList;
+import javax.servlet.http.HttpServletRequest;
+
 
 @RestController
 public class ObjectFileController {
@@ -45,4 +44,14 @@ public class ObjectFileController {
 //                                                       @PathVariable String bucket_name) {
 //        return this.bucketService.listObjects(bucket_name);
 //    }
+
+    @RequestMapping(value = "/{bucket_name}/{object_name}", method = RequestMethod.PUT)
+    public @ResponseBody ResponseEntity<?> uploadPart(@RequestHeader(value="Content-Length") Integer part_size,
+                                                      @RequestHeader(value="Content-MD5") String part_md5,
+                                                      @RequestParam(value = "partNumber") Integer part_number,
+                                                      @PathVariable String bucket_name,
+                                                      @PathVariable String object_name,
+                                                      HttpServletRequest request_body){
+        return objectFileService.uploadObjectPart(bucket_name, object_name, part_number, part_size, part_md5, request_body);
+    }
 }
