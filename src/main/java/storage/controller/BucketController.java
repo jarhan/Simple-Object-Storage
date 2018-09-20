@@ -11,28 +11,25 @@ public class BucketController {
     @Autowired
     private BucketServiceImpl bucketService;
 
-    @RequestMapping(value = "/all", method = RequestMethod.GET)
+    @GetMapping(value = "/all")
     public Iterable<Bucket> getAll(){
         Iterable<Bucket> buckets = this.bucketService.findAll();
         System.out.println(buckets);
         return buckets;
     }
 
-    @RequestMapping(value = "/{bucket_name}", method = RequestMethod.POST)
-    public @ResponseBody ResponseEntity<?> createBucket(@RequestParam(value = "create") String create,
-                                          @PathVariable String bucket_name) {
+    @PostMapping(value = "/{bucket_name}", params = "create")
+    public @ResponseBody ResponseEntity<?> createBucket(@PathVariable String bucket_name) {
         return this.bucketService.createBucket(bucket_name);
     }
 
-    @RequestMapping(value = "/{bucket_name}", method = RequestMethod.DELETE)
-    public @ResponseBody ResponseEntity<?> deleteBucket(@RequestParam(value = "delete") String delete,
-                               @PathVariable String bucket_name) {
+    @DeleteMapping(value = "/{bucket_name}", params = "delete")
+    public @ResponseBody ResponseEntity<?> deleteBucket(@PathVariable String bucket_name) {
         return this.bucketService.deleteBucket(bucket_name);
     }
 
-    @RequestMapping(value = "/{bucket_name}", method = RequestMethod.GET)
-    public @ResponseBody ResponseEntity<?> listObjects(@RequestParam(value = "list") String list,
-                               @PathVariable String bucket_name) {
+    @GetMapping(value = "/{bucket_name}", params = "list")
+    public @ResponseBody ResponseEntity<?> listObjects(@PathVariable String bucket_name) {
         return this.bucketService.listObjects(bucket_name);
     }
 }

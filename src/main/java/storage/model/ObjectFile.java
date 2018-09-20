@@ -1,11 +1,11 @@
 package storage.model;
 
+import javafx.util.Pair;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 @Document
 
@@ -18,7 +18,7 @@ public class ObjectFile {
     private long created;
     private long modified;
     private String uuid;
-    private Set<Integer> file_parts;
+    private Map<Integer, ArrayList<Object>> file_parts;
     private boolean ticket;
 
     public ObjectFile() {};
@@ -28,7 +28,7 @@ public class ObjectFile {
         this.created = created;
         this.modified = modified;
         this.uuid = uuid;
-        this.file_parts =  new HashSet<>();
+        this.file_parts =  new HashMap<>();
         this.ticket = false;
     }
 
@@ -60,11 +60,17 @@ public class ObjectFile {
     }
 
     public boolean containFilePart(Integer file_part) {
-        return file_parts.contains(file_part);
+        return file_parts.containsKey(file_part);
     }
 
-    public Set<Integer> addFilePart(Integer file_part) {
-        file_parts.add(file_part);
+    public void addFilePart(Integer file_part, String part_md5, Long part_size) {
+        ArrayList<Object> data = new ArrayList<>();
+        data.add(part_md5);
+        data.add(part_size);
+        this.file_parts.put(file_part, data);
+    }
+
+    public Map<Integer, ArrayList<Object>> getFile_parts() {
         return file_parts;
     }
 
@@ -73,7 +79,7 @@ public class ObjectFile {
     }
 
     public boolean isPartNumberValidToAdd(Integer part_number) {
-        if (part_number >= 1 && part_number <= 10000 && !file_parts.contains(part_number)) {
+        if (part_number >= 1 && part_number <= 10000) {
             return true;
         }
         return false;

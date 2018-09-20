@@ -25,10 +25,11 @@ def test_uploading():
 	# resp = requests.post(BASE_URL+'/buckettest/objecttest?create')
 	# assert resp.status_code == STATUS_OK
 
-	data = open('./test.jpg', 'rb').read()
-	resp = requests.put(url=BASE_URL+'/buckettest/objecttest?partNumber=1',
+	data = open('./test2.jpg', 'rb').read()
+	resp = requests.put(url=BASE_URL+'/b/a?partNumber=4',
 						data=data,
-						headers={'Content-Length': str(len(data)), 'Content-MD5': hashlib.md5(data).hexdigest()})
+						headers={ 'Content-MD5': hashlib.md5(data).hexdigest()})
+
 	assert resp.status_code == STATUS_OK
 
 # def test_get_status():

@@ -14,5 +14,7 @@ public interface BucketRepository extends MongoRepository<Bucket, String> {
 
     Bucket findByName(String name);
 
+    Bucket findByModified(long modified);
+
     void deleteBucketByName(String name);
 }

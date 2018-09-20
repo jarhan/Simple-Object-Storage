@@ -1,13 +1,15 @@
 package storage.service;
 
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+import com.google.common.io.BaseEncoding;
 import javafx.util.Pair;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
+
 import storage.model.Bucket;
 import storage.model.ObjectFile;
 import storage.repository.BucketRepository;
@@ -16,12 +18,11 @@ import storage.repository.ObjectFileRepository;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.security.MessageDigest;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Service
@@ -37,11 +38,19 @@ public class ObjectFileServiceImpl implements ObjectFileService {
         return UUID.randomUUID().toString();
     }
 
-    private Map<String, Object> createResponse(String part_md5, Integer part_size, Integer part_number) {
+    private Map<String, Object> createResponse(String part_md5, long part_size, Integer part_number) {
         Map<String, Object> response = new HashMap<>();
         response.put("md5", part_md5);
         response.put("length", part_size);
         response.put("partNumber", part_number);
+        return response;
+    }
+
+    private Map<String, Object> completeResponse(String object_name, String eTag, long length) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("name", object_name);
+        response.put("length", length);
+        response.put("eTag", eTag);
         return response;
     }
 
@@ -56,11 +65,36 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     }
 
     private Bucket getBucket(String name) {
-        Bucket bucket = bucketRepository.findByName(name);
-        if (bucket == null) {
+        try {
+            Bucket bucket = bucketRepository.findByName(name);
+            if (bucket == null) {
+                throw new IllegalArgumentException("InvalidBucket");
+            }
+            return bucket;
+        } catch (Exception ex) {
+            System.out.println(ex);
             throw new IllegalArgumentException("InvalidBucket");
         }
-        return bucket;
+    }
+
+    @Override
+    public long castContentLength(String part_size) {
+        try {
+            long casted_size = Long.parseLong(part_size);
+            return casted_size;
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("LengthMismatched");
+        }
+    }
+
+    @Override
+    public Integer castPartNumber(String part_number) {
+        try {
+            Integer casted_part_number = Integer.valueOf(part_number);
+            return casted_part_number;
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("InvalidPartNumber");
+        }
     }
 
     private Pair<Integer, ObjectFile> getObjectByName(ArrayList<ObjectFile> objects, String object_name) {
@@ -88,7 +122,7 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     }
 
     private boolean createObjectFileDirectory(Bucket bucket, ObjectFile objectFile) {
-        File newDirectory = new File("data/" + bucket.getName() + "/" +objectFile.getName());
+        File newDirectory = new File("data/" + bucket.getUuid() + "/" +objectFile.getUuid());
         return newDirectory.mkdirs();
     }
 
@@ -109,7 +143,7 @@ public class ObjectFileServiceImpl implements ObjectFileService {
             ObjectFile objectFile = new ObjectFile(object_name, timestamp, timestamp, uuid);
 
             ArrayList<ObjectFile> objects = bucket.getObjects();
-            
+
             if (!this.objectExist(objects, object_name) && isObjectNameValid(object_name)) {
                 try {
                     objects.add(objectFile);
@@ -146,10 +180,7 @@ public class ObjectFileServiceImpl implements ObjectFileService {
                     long timestamp = this.getTimestamp();
                     bucket.setModified(timestamp);
                     System.out.println("object is deleted:" + objects);
-
-                    FileUtils.deleteDirectory(new File("data/" + bucket_name + "/" + object_name));
                     bucketRepository.save(bucket);
-
                     return new ResponseEntity<>(HttpStatus.OK);
                 } catch (Exception ex) {
                     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -166,9 +197,33 @@ public class ObjectFileServiceImpl implements ObjectFileService {
         return Pattern.matches(pattern, object_name);
     }
 
-    private boolean isMD5Valid(byte[] data, String given_md5) {
+    private String digestAsHex(String file_path) {
         try {
-            String data_md5 = DigestUtils.md5DigestAsHex(data);
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            FileInputStream fis = new FileInputStream(file_path);
+
+            byte[] dataBytes = new byte[1024];
+
+            int nread = 0;
+            while ((nread = fis.read(dataBytes)) != -1) {
+                md.update(dataBytes, 0, nread);
+            }
+            byte[] mdbytes = md.digest();
+
+            //convert the byte to hex format
+            StringBuffer sb = new StringBuffer();
+            for (int i = 0; i < mdbytes.length; i++) {
+                sb.append(Integer.toString((mdbytes[i] & 0xff) + 0x100, 16).substring(1));
+            }
+            return sb.toString();
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Cannot digest");
+        }
+    }
+
+    private boolean isMD5Valid(String file_path, String given_md5) {
+        try {
+            String data_md5 = digestAsHex(file_path);
             return given_md5.equals(data_md5);
         } catch (Exception ex) {
             return true;
@@ -179,12 +234,9 @@ public class ObjectFileServiceImpl implements ObjectFileService {
         return given_size.equals(data_size);
     }
 
-    private boolean isRequestBodyValid(byte[] data, String given_md5, Integer given_size, Integer data_size) {
-        if (!isMD5Valid(data, given_md5)) {
+    private boolean isRequestBodyValid(String file_path, String given_md5) {
+        if (!isMD5Valid(file_path, given_md5)) {
             throw new IllegalArgumentException("MD5Mismatched");
-        }
-        if (!isContentLengthValid(given_size, data_size)) {
-            throw new IllegalArgumentException("LengthMismatched");
         }
         return true;
     }
@@ -193,47 +245,100 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     public ResponseEntity<?> uploadObjectPart(String bucket_name,
                                               String object_name,
                                               Integer part_number,
-                                              Integer part_size,
+                                              long part_size,
                                               String part_md5,
                                               HttpServletRequest request_body) {
-        
+
         Map<String, Object> response = createResponse(part_md5, part_size, part_number);
-        
         try {
-           // Check Validation of bucket and object
-           Bucket bucket = getBucket(bucket_name);
-           Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
-           ObjectFile object = pair.getValue();
-           Integer object_index = pair.getKey();
-           if (!object.isPartNumberValidToAdd(part_number)) {
-               throw new IllegalArgumentException("InvalidPartNumber");
-           }
-           if (object.isTicketFlagged()) {
-               throw new IllegalArgumentException("Object is flagged as completed");
-           }
+            // Check Validation of bucket and object
+            Bucket bucket = getBucket(bucket_name);
+            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = pair.getValue();
+            Integer object_index = pair.getKey();
+            if (!object.isPartNumberValidToAdd(part_number)) {
+                throw new IllegalArgumentException("InvalidPartNumber");
+            }
+            if (object.isTicketFlagged()) {
+                throw new IllegalArgumentException("Object is flagged as completed");
+            }
 
-           String filepath = "data/" + bucket_name + "/" + object_name + "/" + part_number.toString();
-           FileOutputStream fout = new FileOutputStream(filepath);
-           ServletInputStream inputStream = request_body.getInputStream();
-           byte[] bytes = IOUtils.toByteArray(inputStream);
-           Integer data_size = bytes.length;
+            String filepath = "data/" + bucket.getUuid() + "/" + object.getUuid() + "/" + part_number.toString();
+            FileOutputStream fout = new FileOutputStream(filepath);
+            ServletInputStream inputStream = request_body.getInputStream();
+            IOUtils.copy(inputStream, fout);
 
-            if (isRequestBodyValid(bytes, part_md5, part_size, data_size)) {
-               IOUtils.copy(inputStream, fout);
-               object.addFilePart(part_number);
-               ArrayList<ObjectFile> objects = bucket.getObjects();
-               if (object_index != -1) {
-                   objects.set(object_index, object);
-                   bucket.setObjects(objects);
-                   bucketRepository.save(bucket);
-                   return ResponseEntity.ok().body(response);
-               }
-           }
-       } catch (Exception ex) {
-           Map<String, Object> response_with_error = createResponseWithError(response, ex.getMessage());
-           return ResponseEntity.badRequest().body(response_with_error);
-       }
+            if (isRequestBodyValid(filepath, part_md5)) {
+                long timestamp = getTimestamp();
+
+                object.addFilePart(part_number, part_md5, part_size);
+                object.setModified(timestamp);
+
+                if (object_index != -1) {
+                    ArrayList<ObjectFile> objects = bucket.getObjects();
+                    objects.set(object_index, object);
+                    bucket.setObjects(objects);
+                    bucket.setModified(timestamp);
+                    bucketRepository.save(bucket);
+                    return ResponseEntity.ok().body(response);
+                }
+            }
+        } catch (Exception ex) {
+            Map<String, Object> response_with_error = createResponseWithError(response, ex.getMessage());
+            System.out.println("error: "+ex.getMessage());
+            return ResponseEntity.badRequest().body(response_with_error);
+        }
         Map<String, Object> response_with_error = createResponseWithError(response, "UndefinedError");
         return ResponseEntity.badRequest().body(response_with_error);
+    }
+
+    private static String calculateChecksumForMultipartUpload(String total_md5) {
+        String hex =  total_md5.toString();
+        byte raw[] = BaseEncoding.base16().decode(hex.toUpperCase());
+        Hasher hasher = Hashing.md5().newHasher();
+        hasher.putBytes(raw);
+        String digest = hasher.hash().toString();
+
+        return digest;
+    }
+
+    @Override
+    public ResponseEntity<?> completeObjectUpload(String bucket_name, String object_name) {
+        try {
+            Bucket bucket = getBucket(bucket_name);
+            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = pair.getValue();
+            Integer object_index = pair.getKey();
+            Map<Integer, ArrayList<Object>> files_part_data = object.getFile_parts();
+
+            SortedSet<Integer> keys = new TreeSet<>(files_part_data.keySet());
+            long total_length = 0;
+            StringBuilder total_md5 = new StringBuilder();
+            for (Integer key : keys) {
+                ArrayList<Object> data = files_part_data.get(key);
+                String part_md5 = (String) data.get(0);
+                long part_size = (long) data.get(1);
+
+                total_length = total_length + part_size;
+                total_md5.append(part_md5);
+            }
+            String total_md5_string = total_md5.toString();
+            String checksum = calculateChecksumForMultipartUpload(total_md5_string);
+            String eTag = checksum + "-" + files_part_data.size();
+
+            object.flagTicket();
+
+            ArrayList<ObjectFile> objects = bucket.getObjects();
+            objects.set(object_index, object);
+            bucket.setObjects(objects);
+            bucketRepository.save(bucket);
+
+            Map<String, Object> response = completeResponse(object_name, eTag, total_length);
+            return ResponseEntity.ok().body(response);
+        } catch (Exception ex) {
+            Map<String, Object> response = completeResponse(object_name, "", 0);
+            Map<String, Object> response_with_error = createResponseWithError(response, ex.getMessage());
+            return ResponseEntity.badRequest().body(response_with_error);
+        }
     }
 }

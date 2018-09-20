@@ -87,7 +87,7 @@ public class BucketServiceImpl implements BucketService {
         Bucket bucket_to_delete = this.findBucketByName(name);
         if (bucket_to_delete != null) {
             try {
-                FileUtils.deleteDirectory(new File("data/" + name));
+                FileUtils.deleteDirectory(new File("data/" + bucket_to_delete.getUuid()));
                 this.deleteBucket(bucket_to_delete);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (Exception ex) {
@@ -110,7 +110,7 @@ public class BucketServiceImpl implements BucketService {
 
     @Override
     public boolean createBucketDirectory(Bucket bucket) {
-        File newDirectory = new File("data/" + bucket.getName());
+        File newDirectory = new File("data/" + bucket.getUuid());
         return newDirectory.mkdirs();
     }
 
