@@ -19,6 +19,7 @@ public class ObjectFile {
     private long modified;
     private String uuid;
     private Map<Integer, ArrayList<Object>> file_parts;
+    private Map<String, String> metadata;
     private boolean ticket;
 
     public ObjectFile() {};
@@ -29,6 +30,7 @@ public class ObjectFile {
         this.modified = modified;
         this.uuid = uuid;
         this.file_parts =  new HashMap<>();
+        this.metadata = new HashMap<>();
         this.ticket = false;
     }
 
@@ -59,7 +61,7 @@ public class ObjectFile {
         this.modified = modified;
     }
 
-    public boolean containFilePart(Integer file_part) {
+    public boolean containsFilePart(Integer file_part) {
         return file_parts.containsKey(file_part);
     }
 
@@ -68,6 +70,11 @@ public class ObjectFile {
         data.add(part_md5);
         data.add(part_size);
         this.file_parts.put(file_part, data);
+    }
+
+    public void removeFilePart(Integer file_part) {
+        ArrayList<Object> data = new ArrayList<>();
+        this.file_parts.remove(file_part);
     }
 
     public Map<Integer, ArrayList<Object>> getFile_parts() {
@@ -91,5 +98,25 @@ public class ObjectFile {
 
     public void unflagTicket() {
         this.ticket = false;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public String getMetadataWithKey(String key) {
+        return metadata.get(key);
+    }
+
+    public void updateMetadata(String key, String value) {
+        this.metadata.put(key, value);
+    }
+
+    public void removeMetadata(String key) {
+        this.metadata.remove(key);
+    }
+
+    public boolean containMetatdataKey(String key) {
+        return this.metadata.containsKey(key);
     }
 }

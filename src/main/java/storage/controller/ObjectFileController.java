@@ -1,6 +1,7 @@
 package storage.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import storage.model.Bucket;
@@ -56,21 +57,41 @@ public class ObjectFileController {
             response.put("md5", part_md5);
             response.put("length", part_number);
             response.put("partNumber", part_number);
-            System.out.println(response);
             return ResponseEntity.badRequest().body(response);
         }
     }
 
-//    @DeleteMapping(value = "/{bucket_name}/{object_name}", params = "delete")
-//    public @ResponseBody ResponseEntity<?> deletePart(@RequestParam(value = "partNumber") String part_number,
-//                                                      @PathVariable String bucket_name,
-//                                                      @PathVariable String object_name) {
-//        return objectFileService.deleteObjectPart(bucket_name, object_name.toLowerCase(), part_number);
-//    }
+    @DeleteMapping(value = "/{bucket_name}/{object_name}")
+    public @ResponseBody ResponseEntity<?> deletePart(@RequestParam(value = "partNumber") String part_number,
+                                                      @PathVariable String bucket_name,
+                                                      @PathVariable String object_name) {
+        try {
+            Integer casted_part_number = objectFileService.castPartNumber(part_number);
+
+            return objectFileService.deleteObjectPart(bucket_name, object_name.toLowerCase(), casted_part_number);
+        } catch (Exception ex) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
 
     @PostMapping(value = "/{bucket_name}/{object_name}", params = "complete")
     public @ResponseBody ResponseEntity<?> completeUpload(@PathVariable String bucket_name,
                                                           @PathVariable String object_name){
         return objectFileService.completeObjectUpload(bucket_name, object_name.toLowerCase());
+    }
+
+    @PutMapping(value = "/{bucket_name}/{object_name}", params = "metadata")
+    public @ResponseBody ResponseEntity<?> updateObjectMetadata(@RequestParam(value = "key") String metadata_key,
+                                                                @RequestBody String metadata_value,
+                                                                @PathVariable String bucket_name,
+                                                                @PathVariable String object_name){
+        return objectFileService.updateObjectMetadata(bucket_name, object_name.toLowerCase(), metadata_key, metadata_value);
+    }
+
+    @DeleteMapping(value = "/{bucket_name}/{object_name}", params = "metadata")
+    public @ResponseBody ResponseEntity<?> deleteObjectMetadata(@RequestParam(value = "key") String metadata_key,
+                                                                @PathVariable String bucket_name,
+                                                                @PathVariable String object_name){
+        return objectFileService.deleteObjectMetadata(bucket_name, object_name.toLowerCase(), metadata_key);
     }
 }

@@ -292,8 +292,34 @@ public class ObjectFileServiceImpl implements ObjectFileService {
         return ResponseEntity.badRequest().body(response_with_error);
     }
 
+    @Override
+    public ResponseEntity<?> deleteObjectPart(String bucket_name, String object_name, Integer part_number) {
+        try {
+            Bucket bucket = getBucket(bucket_name);
+            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = pair.getValue();
+            Integer object_index = pair.getKey();
+            if (object.isTicketFlagged() && object.containsFilePart(part_number)) {
+
+                long timestamp = getTimestamp();
+                ArrayList<ObjectFile> objects = bucket.getObjects();
+                object.removeFilePart(part_number);
+                object.setModified(timestamp);
+                objects.set(object_index, object);
+                bucket.setObjects(objects);
+                bucketRepository.save(bucket);
+
+                return new ResponseEntity<>(HttpStatus.OK);
+            }
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception ex) {
+
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
     private static String calculateChecksumForMultipartUpload(String total_md5) {
-        String hex =  total_md5.toString();
+        String hex =  total_md5;
         byte raw[] = BaseEncoding.base16().decode(hex.toUpperCase());
         Hasher hasher = Hashing.md5().newHasher();
         hasher.putBytes(raw);
@@ -339,6 +365,47 @@ public class ObjectFileServiceImpl implements ObjectFileService {
             Map<String, Object> response = completeResponse(object_name, "", 0);
             Map<String, Object> response_with_error = createResponseWithError(response, ex.getMessage());
             return ResponseEntity.badRequest().body(response_with_error);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> updateObjectMetadata(String bucket_name, String object_name, String metadata_key, String metadata_value) {
+        try {
+            Bucket bucket = getBucket(bucket_name);
+            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = pair.getValue();
+            Integer object_index = pair.getKey();
+
+            ArrayList<ObjectFile> objects = bucket.getObjects();
+            object.updateMetadata(metadata_key, metadata_value);
+            objects.set(object_index, object);
+            bucket.setObjects(objects);
+            bucketRepository.save(bucket);
+
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception ex) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> deleteObjectMetadata(String bucket_name, String object_name, String metadata_key) {
+        try {
+            Bucket bucket = getBucket(bucket_name);
+            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = pair.getValue();
+            Integer object_index = pair.getKey();
+
+            if (object.containMetatdataKey(metadata_key)) {
+                ArrayList<ObjectFile> objects = bucket.getObjects();
+                object.removeMetadata(metadata_key);
+                objects.set(object_index, object);
+                bucket.setObjects(objects);
+                bucketRepository.save(bucket);
+            }
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception ex) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 }
