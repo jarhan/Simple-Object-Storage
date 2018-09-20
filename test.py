@@ -44,7 +44,7 @@ def test_addMetadata():
 	# resp = requests.post(BASE_URL+'/buckettest/objecttest?create')
 	# assert resp.status_code == STATUS_OK
 
-	resp = requests.put(url=BASE_URL+'/b/c?metadata&key=license',
+	resp = requests.delete(url=BASE_URL+'/bs/c?metadata&key=license',
 						data="Apache 2.0")
 
-	assert resp.status_code == STATUS_OK
+	assert resp.status_code == 404

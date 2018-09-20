@@ -408,4 +408,35 @@ public class ObjectFileServiceImpl implements ObjectFileService {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
+
+    @Override
+    public ResponseEntity<?> getObjectMetadata(String bucket_name, String object_name, String metadata_key) {
+        try {
+            Bucket bucket = getBucket(bucket_name);
+            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = pair.getValue();
+            Map<String, String> response = new HashMap<>();
+
+            if (object.containMetatdataKey(metadata_key)) {
+                String metadata_value = object.getMetadataWithKey(metadata_key);
+                response.put(metadata_key, metadata_value);
+            }
+            return ResponseEntity.ok().body(response);
+        } catch (Exception ex) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getAllObjectMetadata(String bucket_name, String object_name) {
+        try {
+            Bucket bucket = getBucket(bucket_name);
+            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = pair.getValue();
+
+            return ResponseEntity.ok().body(object.getAllMetadata());
+        } catch (Exception ex) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
 }

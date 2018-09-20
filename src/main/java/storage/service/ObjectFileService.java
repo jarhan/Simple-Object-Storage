@@ -36,4 +36,10 @@ public interface ObjectFileService {
 
     @ResponseBody
     ResponseEntity<?> deleteObjectMetadata(String bucket_name, String object_name, String metadata_key);
+
+    @ResponseBody
+    ResponseEntity<?> getObjectMetadata(String bucket_name, String object_name, String metadata_key);
+
+    @ResponseBody
+    ResponseEntity<?> getAllObjectMetadata(String bucket_name, String object_name);
 }

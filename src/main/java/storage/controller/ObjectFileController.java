@@ -94,4 +94,10 @@ public class ObjectFileController {
                                                                 @PathVariable String object_name){
         return objectFileService.deleteObjectMetadata(bucket_name, object_name.toLowerCase(), metadata_key);
     }
+
+    @GetMapping(value = "/{bucket_name}/{object_name}", params = "metadata")
+    public @ResponseBody ResponseEntity<?> getObjectMetadata(@PathVariable String bucket_name,
+                                                             @PathVariable String object_name){
+        return objectFileService.getAllObjectMetadata(bucket_name, object_name.toLowerCase());
+    }
 }

@@ -100,7 +100,7 @@ public class ObjectFile {
         this.ticket = false;
     }
 
-    public Map<String, String> getMetadata() {
+    public Map<String, String> getAllMetadata() {
         return metadata;
     }
 
