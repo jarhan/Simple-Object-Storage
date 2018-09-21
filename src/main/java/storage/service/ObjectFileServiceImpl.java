@@ -136,8 +136,8 @@ public class ObjectFileServiceImpl implements ObjectFileService {
 
     @Override
     public ResponseEntity<?> createObjectFile(String bucket_name, String object_name) {
-        Bucket bucket = this.getBucket(bucket_name);
-        if (bucket != null) {
+        try {
+            Bucket bucket = this.getBucket(bucket_name);
             long timestamp = this.getTimestamp();
             String uuid = this.createInternalName();
             ObjectFile objectFile = new ObjectFile(object_name, timestamp, timestamp, uuid);
@@ -158,8 +158,10 @@ public class ObjectFileServiceImpl implements ObjectFileService {
                     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
                 }
             }
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception ex) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
     @Override
