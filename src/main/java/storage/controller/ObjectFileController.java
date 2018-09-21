@@ -10,8 +10,12 @@ import storage.repository.BucketRepository;
 import storage.service.ObjectFileServiceImpl;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 @RestController
@@ -61,6 +65,23 @@ public class ObjectFileController {
         }
     }
 
+    @GetMapping(value = "/{bucket_name}/{object_name}")
+    public @ResponseBody ResponseEntity<?> downloadObjectFile(@RequestHeader(value = "Range", required = false) String range,
+                                                              @PathVariable String bucket_name,
+                                                              @PathVariable String object_name,
+                                                              HttpServletResponse response){
+        try {
+            System.out.println("download");
+            if (!range.isEmpty()) {
+                return objectFileService.downloadObjectWithRange(bucket_name, object_name, range, response);
+            }
+            System.out.println("download all");
+            return objectFileService.downloadObjectFullRange(bucket_name, object_name, response);
+        } catch (Exception ex) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
     @DeleteMapping(value = "/{bucket_name}/{object_name}")
     public @ResponseBody ResponseEntity<?> deletePart(@RequestParam(value = "partNumber") String part_number,
                                                       @PathVariable String bucket_name,
@@ -96,8 +117,12 @@ public class ObjectFileController {
     }
 
     @GetMapping(value = "/{bucket_name}/{object_name}", params = "metadata")
-    public @ResponseBody ResponseEntity<?> getObjectMetadata(@PathVariable String bucket_name,
+    public @ResponseBody ResponseEntity<?> getObjectMetadata(@RequestParam(value = "key", defaultValue = "all") String metadata_key,
+                                                             @PathVariable String bucket_name,
                                                              @PathVariable String object_name){
-        return objectFileService.getAllObjectMetadata(bucket_name, object_name.toLowerCase());
+        if (metadata_key.equals("all")) {
+            return objectFileService.getAllObjectMetadata(bucket_name, object_name.toLowerCase());
+        }
+        return objectFileService.getObjectMetadata(bucket_name, object_name.toLowerCase(), metadata_key);
     }
 }

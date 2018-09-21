@@ -16,10 +16,10 @@ import storage.repository.BucketRepository;
 import storage.repository.ObjectFileRepository;
 
 import javax.servlet.ServletInputStream;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
 import java.security.MessageDigest;
 import java.sql.Timestamp;
 import java.util.*;
@@ -164,22 +164,18 @@ public class ObjectFileServiceImpl implements ObjectFileService {
 
     @Override
     public ResponseEntity<?> deleteObjectFile(String bucket_name, String object_name) {
-        System.out.println("delete object");
         try {
             Bucket bucket = this.getBucket(bucket_name);
             ArrayList<ObjectFile> objects = bucket.getObjects();
-            System.out.println("objects in bucket " + bucket_name + ":" + objects);
             Pair<Integer, ObjectFile> pair = this.getObjectByName(objects, object_name);
             ObjectFile object_to_delete = pair.getValue();
-            System.out.println("object will be deleted: " + object_to_delete);
+
             if (bucket != null && object_to_delete != null) {
-                System.out.println("object to delete is valid!");
                 try {
                     objects.remove(object_to_delete);
                     bucket.setObjects(objects);
                     long timestamp = this.getTimestamp();
                     bucket.setModified(timestamp);
-                    System.out.println("object is deleted:" + objects);
                     bucketRepository.save(bucket);
                     return new ResponseEntity<>(HttpStatus.OK);
                 } catch (Exception ex) {
@@ -299,7 +295,7 @@ public class ObjectFileServiceImpl implements ObjectFileService {
             Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
             ObjectFile object = pair.getValue();
             Integer object_index = pair.getKey();
-            if (object.isTicketFlagged() && object.containsFilePart(part_number)) {
+            if (!object.isTicketFlagged() && object.containsFilePart(part_number)) {
 
                 long timestamp = getTimestamp();
                 ArrayList<ObjectFile> objects = bucket.getObjects();
@@ -353,6 +349,7 @@ public class ObjectFileServiceImpl implements ObjectFileService {
             String eTag = checksum + "-" + files_part_data.size();
 
             object.flagTicket();
+            object.setFile_length(total_length);
 
             ArrayList<ObjectFile> objects = bucket.getObjects();
             objects.set(object_index, object);
@@ -365,6 +362,79 @@ public class ObjectFileServiceImpl implements ObjectFileService {
             Map<String, Object> response = completeResponse(object_name, "", 0);
             Map<String, Object> response_with_error = createResponseWithError(response, ex.getMessage());
             return ResponseEntity.badRequest().body(response_with_error);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> downloadObjectWithRange(String bucket_name, String object_name, String range, HttpServletResponse response) {
+        try {
+            Bucket bucket = getBucket(bucket_name);
+            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = pair.getValue();
+
+            if (!object.isTicketFlagged()) {
+                throw new IllegalArgumentException("UploadUncomplete");
+            }
+
+            System.out.println("range: "+range);
+            String[] only_range = range.split("bytes=");
+            String[] split_range = only_range[1].split("-");
+            long from_byte = Long.parseLong(split_range[0]);
+            long to_byte = object.getFile_length();
+
+            if (split_range.length > 1) {
+                to_byte = Long.parseLong(split_range[1]);
+            }
+
+            System.out.println("to_byte" + to_byte);
+            if (from_byte > to_byte) {
+                throw new IllegalArgumentException("RangeInvalid");
+            }
+
+            String filepath = "data/" + bucket.getUuid() + "/" + object.getUuid();
+            System.out.println(filepath);
+            response.setHeader("Content-Length", Long.toString(object.getFile_length()));
+
+            Set<Integer> file_parts_key = object.getFile_parts().keySet();
+            SortedSet<Integer> keys = new TreeSet<>(file_parts_key);
+
+            List<InputStream> in_list = new ArrayList<>();
+
+            for (Integer key: keys) {
+                in_list.add(new FileInputStream(filepath + "/" + key));
+            }
+
+            SequenceInputStream in_stream = new SequenceInputStream(Collections.enumeration(in_list));
+            OutputStream out = new BufferedOutputStream(response.getOutputStream());
+
+            in_stream.skip(from_byte);
+            for (long i = 0L; i < to_byte-from_byte; i++) {
+                out.write(in_stream.read());
+            }
+
+            in_stream.close();
+            out.close();
+
+
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception ex) {
+            System.out.println(ex);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> downloadObjectFullRange(String bucket_name, String object_name, HttpServletResponse response) {
+        try {
+            Bucket bucket = getBucket(bucket_name);
+            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = pair.getValue();
+
+            String range = "bytes=0-" + Long.toString(object.getFile_length() - 1);
+
+            return downloadObjectWithRange(bucket_name, object_name, range, response);
+        } catch (Exception ex) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 

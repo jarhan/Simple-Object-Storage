@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import storage.model.ObjectFile;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 public interface ObjectFileService {
 
@@ -30,6 +31,12 @@ public interface ObjectFileService {
 
     @ResponseBody
     ResponseEntity<?> completeObjectUpload(String bucket_name, String object_name);
+
+    @ResponseBody
+    ResponseEntity<?> downloadObjectWithRange(String bucket_name, String object_name, String range, HttpServletResponse response);
+
+    @ResponseBody
+    ResponseEntity<?> downloadObjectFullRange(String bucket_name, String object_name, HttpServletResponse response);
 
     @ResponseBody
     ResponseEntity<?> updateObjectMetadata(String bucket_name, String object_name, String metadata_key, String metadata_value);

@@ -20,6 +20,7 @@ public class ObjectFile {
     private String uuid;
     private Map<Integer, ArrayList<Object>> file_parts;
     private Map<String, String> metadata;
+    private long file_length;
     private boolean ticket;
 
     public ObjectFile() {};
@@ -31,6 +32,7 @@ public class ObjectFile {
         this.uuid = uuid;
         this.file_parts =  new HashMap<>();
         this.metadata = new HashMap<>();
+        this.file_length = 0;
         this.ticket = false;
     }
 
@@ -59,6 +61,14 @@ public class ObjectFile {
 
     public void setModified(long modified) {
         this.modified = modified;
+    }
+
+    public void setFile_length(long file_length) {
+        this.file_length = file_length;
+    }
+
+    public long getFile_length() {
+        return file_length;
     }
 
     public boolean containsFilePart(Integer file_part) {
