@@ -16,7 +16,6 @@ import storage.repository.BucketRepository;
 import storage.repository.ObjectFileRepository;
 
 import javax.servlet.ServletInputStream;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
