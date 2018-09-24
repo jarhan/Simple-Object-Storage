@@ -1,7 +1,7 @@
 version: '3'
 services:
   app:
-    container_name: simple-object-storage
+    container_name: simpleobjectstorage
     restart: unless-stopped
       # args:
     # JAR_FILE: SimpleObjectStorage-1.0-SNAPSHOT.jar
@@ -20,6 +20,8 @@ services:
       DATABASE_PASSWORD: 123456
       AUTHENTICATION_DATABASE: admin
 
+    volumes:
+    - './data:/app/data'
   mongo:
     container_name: mongo
     image: mongo
@@ -28,3 +30,6 @@ services:
       MONGO_INITDB_ROOT_USERNAME: jarhan
       MONGO_INITDB_ROOT_PASSWORD: 123456
       MONGO_INITDB_DATABASE: bucketDB
+    volumes:
+    - './data/db:/data/db'
+    - './data/configdb:/data/configdb'
