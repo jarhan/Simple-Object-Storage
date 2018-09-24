@@ -96,20 +96,48 @@ public class ObjectFileServiceImpl implements ObjectFileService {
         }
     }
 
-    private Pair<Integer, ObjectFile> getObjectByName(ArrayList<ObjectFile> objects, String object_name) {
+    private Map<Integer, ObjectFile> getObjectByName(ArrayList<ObjectFile> objects, String object_name) {
+        Map<Integer, ObjectFile> pair = new HashMap<>();
+//        ArrayList<Object> pair = new ArrayList<>();
         for (int i = 0; i < objects.size(); i++) {
             ObjectFile object = objects.get(i);
             if (object.getName().equals(object_name)) {
-                return new Pair<>(i, object);
+//                pair.add(0, i);
+//                pair.add(1, object);
+                pair.put(i, object);
+                return pair;
             }
         }
-        return new Pair<>(-1, null);
+//        pair.add(0, -1);
+//        pair.add(1, null);
+        pair.put(-1, null);
+        return pair;
     }
 
-    private Pair<Integer, ObjectFile> getObjectFile(Bucket bucket, String name) {
+    private Integer getIndexFromPair(Map<Integer, ObjectFile> pair){
+        Integer i = -1;
+        for (Integer integer: pair.keySet()) {
+            i = integer;
+        }
+        return i;
+    }
+
+    private ObjectFile getObjectFileFromPair(Map<Integer, ObjectFile> pair){
+        Integer i = -1;
+        for (Integer integer: pair.keySet()) {
+            i = integer;
+        }
+        return pair.get(i);
+    }
+
+    private Map<Integer, ObjectFile> getObjectFile(Bucket bucket, String name) {
         ArrayList<ObjectFile> objects = bucket.getObjects();
-        Pair<Integer, ObjectFile> pair = getObjectByName(objects, name);
-        ObjectFile object = pair.getValue();
+        Map<Integer, ObjectFile> pair = getObjectByName(objects, name);
+//        ArrayList<Object> pair = getObjectByName(objects, name);
+//        pair.put()
+//        Map<Integer, ObjectFile> pair = getObjectByName(objects, name);
+        ObjectFile object = getObjectFileFromPair(pair);
+//        ObjectFile object = (ObjectFile) pair.get(1);
         if (object == null) {
             throw new IllegalArgumentException("InvalidObjectName");
         }
@@ -168,8 +196,9 @@ public class ObjectFileServiceImpl implements ObjectFileService {
         try {
             Bucket bucket = this.getBucket(bucket_name);
             ArrayList<ObjectFile> objects = bucket.getObjects();
-            Pair<Integer, ObjectFile> pair = this.getObjectByName(objects, object_name);
-            ObjectFile object_to_delete = pair.getValue();
+            Map<Integer, ObjectFile> pair = this.getObjectByName(objects, object_name);
+//            ObjectFile object_to_delete = pair.getValue();
+            ObjectFile object_to_delete = getObjectFileFromPair(pair);
 
             if (bucket != null && object_to_delete != null) {
                 try {
@@ -250,9 +279,9 @@ public class ObjectFileServiceImpl implements ObjectFileService {
         try {
             // Check Validation of bucket and object
             Bucket bucket = getBucket(bucket_name);
-            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
-            ObjectFile object = pair.getValue();
-            Integer object_index = pair.getKey();
+            Map<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object =  getObjectFileFromPair(pair);
+            Integer object_index = getIndexFromPair(pair);
             if (!object.isPartNumberValidToAdd(part_number)) {
                 throw new IllegalArgumentException("InvalidPartNumber");
             }
@@ -293,9 +322,9 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     public ResponseEntity<?> deleteObjectPart(String bucket_name, String object_name, Integer part_number) {
         try {
             Bucket bucket = getBucket(bucket_name);
-            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
-            ObjectFile object = pair.getValue();
-            Integer object_index = pair.getKey();
+            Map<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = getObjectFileFromPair(pair);
+            Integer object_index = getIndexFromPair(pair);
             if (!object.isTicketFlagged() && object.containsFilePart(part_number)) {
 
                 long timestamp = getTimestamp();
@@ -329,9 +358,9 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     public ResponseEntity<?> completeObjectUpload(String bucket_name, String object_name) {
         try {
             Bucket bucket = getBucket(bucket_name);
-            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
-            ObjectFile object = pair.getValue();
-            Integer object_index = pair.getKey();
+            Map<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = getObjectFileFromPair(pair);
+            Integer object_index = getIndexFromPair(pair);
             Map<Integer, ArrayList<Object>> files_part_data = object.getFile_parts();
 
             SortedSet<Integer> keys = new TreeSet<>(files_part_data.keySet());
@@ -370,8 +399,8 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     public ResponseEntity<?> downloadObjectWithRange(String bucket_name, String object_name, String range, HttpServletResponse response) {
         try {
             Bucket bucket = getBucket(bucket_name);
-            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
-            ObjectFile object = pair.getValue();
+            Map<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = getObjectFileFromPair(pair);
 
             if (!object.isTicketFlagged()) {
                 throw new IllegalArgumentException("UploadUncomplete");
@@ -428,8 +457,8 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     public ResponseEntity<?> downloadObjectFullRange(String bucket_name, String object_name, HttpServletResponse response) {
         try {
             Bucket bucket = getBucket(bucket_name);
-            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
-            ObjectFile object = pair.getValue();
+            Map<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = getObjectFileFromPair(pair);
 
             String range = "bytes=0-" + Long.toString(object.getFile_length() - 1);
 
@@ -443,9 +472,9 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     public ResponseEntity<?> updateObjectMetadata(String bucket_name, String object_name, String metadata_key, String metadata_value) {
         try {
             Bucket bucket = getBucket(bucket_name);
-            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
-            ObjectFile object = pair.getValue();
-            Integer object_index = pair.getKey();
+            Map<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = getObjectFileFromPair(pair);
+            Integer object_index = getIndexFromPair(pair);
 
             ArrayList<ObjectFile> objects = bucket.getObjects();
             object.updateMetadata(metadata_key, metadata_value);
@@ -463,9 +492,9 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     public ResponseEntity<?> deleteObjectMetadata(String bucket_name, String object_name, String metadata_key) {
         try {
             Bucket bucket = getBucket(bucket_name);
-            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
-            ObjectFile object = pair.getValue();
-            Integer object_index = pair.getKey();
+            Map<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = getObjectFileFromPair(pair);
+            Integer object_index = getIndexFromPair(pair);
 
             if (object.containMetatdataKey(metadata_key)) {
                 ArrayList<ObjectFile> objects = bucket.getObjects();
@@ -484,8 +513,8 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     public ResponseEntity<?> getObjectMetadata(String bucket_name, String object_name, String metadata_key) {
         try {
             Bucket bucket = getBucket(bucket_name);
-            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
-            ObjectFile object = pair.getValue();
+            Map<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = getObjectFileFromPair(pair);
             Map<String, String> response = new HashMap<>();
 
             if (object.containMetatdataKey(metadata_key)) {
@@ -502,8 +531,8 @@ public class ObjectFileServiceImpl implements ObjectFileService {
     public ResponseEntity<?> getAllObjectMetadata(String bucket_name, String object_name) {
         try {
             Bucket bucket = getBucket(bucket_name);
-            Pair<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
-            ObjectFile object = pair.getValue();
+            Map<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
+            ObjectFile object = getObjectFileFromPair(pair);
 
             return ResponseEntity.ok().body(object.getAllMetadata());
         } catch (Exception ex) {

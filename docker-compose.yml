@@ -2,14 +2,29 @@ version: '3'
 services:
   app:
     container_name: simple-object-storage
-    restart: always
+    restart: unless-stopped
+      # args:
+    # JAR_FILE: SimpleObjectStorage-1.0-SNAPSHOT.jar
     build: .
     ports:
     - '8080:8080'
-    links:
+
+    depends_on:
     - mongo
+
+    environment:
+      DATABASE_HOST: mongo
+      DATABASE_PORT: 27017
+      DATABASE_NAME: bucketDB
+      DATABASE_USER: jarhan
+      DATABASE_PASSWORD: 123456
+      AUTHENTICATION_DATABASE: admin
+
   mongo:
     container_name: mongo
     image: mongo
-    ports:
-    - '27017:27017'
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: jarhan
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+      MONGO_INITDB_DATABASE: bucketDB
