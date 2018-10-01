@@ -460,7 +460,7 @@ public class ObjectFileServiceImpl implements ObjectFileService {
             Map<Integer, ObjectFile> pair = getObjectFile(bucket, object_name);
             ObjectFile object = getObjectFileFromPair(pair);
 
-            String range = "bytes=0-" + Long.toString(object.getFile_length() - 1);
+            String range = "bytes=0-" + Long.toString(object.getFile_length());
 
             return downloadObjectWithRange(bucket_name, object_name, range, response);
         } catch (Exception ex) {

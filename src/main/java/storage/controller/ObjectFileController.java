@@ -66,17 +66,19 @@ public class ObjectFileController {
     }
 
     @GetMapping(value = "/{bucket_name}/{object_name}")
-    public @ResponseBody ResponseEntity<?> downloadObjectFile(@RequestHeader(value = "Range", required = false) String range,
+    public @ResponseBody ResponseEntity<?> downloadObjectFile(@RequestHeader(value = "Range", required = false, defaultValue = "no range") String range,
                                                               @PathVariable String bucket_name,
                                                               @PathVariable String object_name,
                                                               HttpServletResponse response){
         try {
             System.out.println("download");
-            if (!range.isEmpty()) {
+            if (!range.equals("no range")) {
                 return objectFileService.downloadObjectWithRange(bucket_name, object_name, range, response);
             }
-            System.out.println("download all");
-            return objectFileService.downloadObjectFullRange(bucket_name, object_name, response);
+            else {
+                System.out.println("download all");
+                return objectFileService.downloadObjectFullRange(bucket_name, object_name, response);
+            }
         } catch (Exception ex) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
